@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -7,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"math/rand"
 )
 
 func GetOutboundIP() net.IP {
@@ -21,6 +21,9 @@ func GetOutboundIP() net.IP {
 
     return localAddr.IP
 }
+
+var JohnSnow johnSnow
+var NightKing nightKing
 
 func main() {
 	arguments := os.Args
@@ -59,6 +62,8 @@ func startClient(IPPORT string, username string){
 		os.Exit(100)
 	}
 
+
+  fmt.Println("Connected Press enter to start" + "\n")
 	for{
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print(username + ">> ")
@@ -79,6 +84,7 @@ func startClient(IPPORT string, username string){
 
 func startServer(PORT string) {
 		fmt.Println("Init Server")
+
 		l, err := net.Listen("tcp", ":" + PORT)
 		if err != nil {
 			fmt.Println(err)
@@ -92,6 +98,11 @@ func startServer(PORT string) {
 			os.Exit(100)
 		}
 
+
+		NightKing := nightKing{rand.Intn(9), 30}
+		JohnSnow := johnSnow{rand.Intn(9), 0}
+
+
 		for {
 			netData, err := bufio.NewReader(c).ReadString('\n')
 			if err != nil {
@@ -100,10 +111,63 @@ func startServer(PORT string) {
 			}
 
 			fmt.Print("-> ", string(netData))
-			c.Write([]byte(netData))
+			c.Write([]byte(netData + "fdasf"))
+			c.Write([]byte(NightKing.String() + " " + JohnSnow.String()))
+			fmt.Println(NightKing.String())
+			moveNightKing(NightKing, JohnSnow)
 			if strings.TrimSpace(string(netData)) == "STOP" {
 				fmt.Println("Exiting TCP server!")
 				return
 			}
 		}
+}
+
+
+
+
+
+type nightKing struct{
+	x int
+	y int
+}
+
+func (n nightKing) String() string{
+	return fmt.Sprintf("Night King : (%d, %d) " , n.x, n.y )
+}
+
+type arrow struct{
+	x int
+	y int
+}
+
+func (a arrow) String() string{
+	return fmt.Sprintf("Arrow : (%d, %d) " , a.x, a.y )
+}
+
+type johnSnow struct{
+	x int
+	y int
+}
+
+func (j johnSnow) String() string{
+	return fmt.Sprintf("John Snow: (%d, %d) " , j.x, j.y )
+}
+
+
+
+func moveNightKing(NightKing nightKing, JohnSnow johnSnow){
+	NightKing.y = NightKing.y - 1
+	direction := rand.Intn(2)
+	switch direction{
+		case 0:
+			NightKing.x = NightKing.x -1
+		case 1:
+			NightKing.x = NightKing.x
+		case 2:
+			NightKing.x = NightKing.x + 1
+	}
+}
+
+func shootArrow(){
+
 }
