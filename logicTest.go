@@ -4,29 +4,64 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
+	"strings"
+	"time"
 )
 
-var n  nightKing
-var j  johnSnow
-
-var maxArrows int
-var maxX int
-var maxY int
-var minX int
-var minY int
+var board Board
 
 func main(){
 
-  maxArrows = 3
-  maxX = 9
-  maxY = 29
-  minX = 0
-  minY = 0
+	init_board()
+	update_board()
 
+	for !board.gameOver{
+		fmt.Println(" Please enter integer X coordenate between 0 and 9 that John  will shoot arrow from the wall.")
+	  var Xcoord string
+	  fmt.Scanln(&Xcoord)
+	  if Xcoord, err := strconv.Atoi(Xcoord); err == nil{
+			moveJohnSnow(Xcoord)
+	    for (Xcoord > board.maxX || Xcoord < board.minX){
+				fmt.Println()
+	      fmt.Println("X coordenate that you have entered is not valid please enter an integer between 0 and 9.")
+	      fmt.Scanln(&Xcoord)
+				moveJohnSnow(Xcoord)
+	    }
+	  }
 
+		if (strings.TrimSpace(Xcoord) == "shoot" && board.numArrows <= board.maxArrows){
+			arrow := arrow{board.johnSnow.x, 29 }
+			board.arrows[board.numArrows] = arrow
+			fmt.Println(arrow)
 
-  n = nightKing{ rand.Intn(9), 0 }
-  j = johnSnow{ 5, 30 }
+		}else{
+			fmt.Println()
+			fmt.Println("Invalid answer!")
+			fmt.Println()
+		}
+		fmt.Println( board.johnSnow )
+	  fmt.Println( board.nightKing )
+	}
+}
+
+type Board struct{
+	gameOver bool
+	numArrows int
+	maxArrows int
+	maxX int
+	maxY int
+	minX int
+	minY int
+	johnSnow
+	nightKing
+	arrows []arrow
+}
+
+func init_board(){
+
+	//Max arrows set to 3
+	board = Board{false, 0, 3, 9, 29, 0, 0, johnSnow{x: 5,y: 30 }, nightKing{ x: rand.Intn(9),y: 0 }, []arrow{arrow{ 0, 0 }, arrow{ 0, 0 }, arrow{ 0, 0 } }}
 
   fmt.Println("Winter is Coming")
   fmt.Println("")
@@ -37,32 +72,69 @@ func main(){
   fmt.Println("4: type number to move John Snow")
   fmt.Println("5: Night King will move once every 5 seconds")
   fmt.Println("6: Arrows move 1 square every second in a straight line")
+}
 
-
-
-  fmt.Println(" Please enter integer X coordenate between 0 and 9 that John  will shoot arrow from the wall.")
-  var Xcoord string
-  fmt.Scanln(&Xcoord)
-  if Xcoord, err := strconv.Atoi(Xcoord); err == nil{
-    for (Xcoord > maxX || Xcoord < minX){
-      fmt.Println("X coordenate that you have entered is not valid please enter an integer between 0 and 9.")
-      fmt.Scanln(&Xcoord)
-    }
-  }
-
-  moveJohnSnow(Xcoord)
-
-
-  fmt.Println( j )
-
-  fmt.Println( n )
+func update_board(){
+	go update_arrows()
+	go board.moveNightKing()
 
 
 }
 
-func moveJohnSnow(x int){
-  j.x = x
+func update_arrows(){
+	i := 0
+	for (i < len(board.arrows)){
+		board.arrows[i].y--
+		i++
+	}
+}
 
+func (board Board) moveNightKing(){
+	for !board.gameOver{
+		time.Sleep(time.Second * 1)
+		board.nightKing.y = board.nightKing.y + 1
+		direction := rand.Intn(3)
+		switch direction{
+			case 0:{
+				if (board.nightKing.x <= board.minX){
+					board.nightKing.x = board.nightKing.x + 1
+				}else{
+					board.nightKing.x = board.nightKing.x - 1
+				}
+			}
+			case 1:
+				board.nightKing.x = board.nightKing.x
+			case 2:{
+				if (board.nightKing.x >= board.maxX){
+					board.nightKing.x = board.nightKing.x - 1
+				}else{
+					board.nightKing.x = board.nightKing.x + 1
+				}
+			}
+		}
+		fmt.Println(board.nightKing)
+
+		if (board.nightKing.y == 30){
+			game_over()
+			board.gameOver = true
+		}
+	}
+}
+
+func game_over(){
+  i := 0
+	for ( i < 10) {
+			fmt.Println()
+			if (i == 5){
+				fmt.Println("              GAME OVER!               ")
+			}
+			i++
+		}
+	board.gameOver = true
+}
+
+func moveJohnSnow(x int){
+  board.johnSnow.x = x
 }
 
 type nightKing struct{
