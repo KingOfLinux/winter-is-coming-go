@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"math/rand"
+	"time"
 )
 
 func GetOutboundIP() net.IP {
@@ -22,64 +23,49 @@ func GetOutboundIP() net.IP {
     return localAddr.IP
 }
 
-var JohnSnow johnSnow
-var NightKing nightKing
+var board Board
+
 
 func main() {
-	arguments := os.Args
-	if len(arguments) == 1 {
-		fmt.Println("Press J to join a game or press H to host a game")
-		var answer string
-		fmt.Scanln(&answer)
-		if ((strings.ToLower(strings.TrimSpace(answer))) == "h"){
-			fmt.Println("You chose to host a game your IP is " + GetOutboundIP().String())
-			fmt.Println("Choose a port for your friend to connect to.")
-			var PORT string
-			fmt.Scanln(&PORT)
+			fmt.Println("Your IP is " + GetOutboundIP().String())
+		  PORT := "1945"
 			fmt.Println("Your IP and port are " + GetOutboundIP().String() + ":" + PORT + " Please give this to your friend so they can connect.")
+
+			rand.Seed(time.Now().UnixNano())
+
+
 			startServer(PORT)
 			os.Exit(100)
 		}
 
-		if ((strings.ToLower(strings.TrimSpace(answer))) == "j"){
-			fmt.Println("Please make a username")
-			var username string
-			fmt.Scanln(&username)
-			fmt.Println("You have chosen to join a game please provide IP and port to conect to a server.")
-			var IP string
-			fmt.Scanln(&IP)
-			fmt.Println("Connecting")
-			startClient(IP, username)
+		type Board struct{
+			gameOver bool
+		  arrowOnBoard bool
+			maxX int
+			maxY int
+			minX int
+			minY int
+			JohnSnow
+			NightKing
+		  arrow
 		}
-	}
-}
 
-func startClient(IPPORT string, username string){
+		func init_board(conn net.Conn){
 
-	c, err := net.Dial("tcp", IPPORT)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(100)
-	}
+			board = Board{false, false, 9, 29, 0, 0, JohnSnow{x: 5,y: 0 }, NightKing{ x: rand.Intn(10) ,y: 30 }, arrow{0, 0}}
 
 
-  fmt.Println("Connected Press enter to start" + "\n")
-	for{
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print(username + ">> ")
-		text, _ := reader.ReadString('\n')
-		text = username + ":" + IPPORT + " ->" + text
-		fmt.Fprintf(c, text + "\n")
-		message, _ := bufio.NewReader(c).ReadString('\n')
-		fmt.Print("-> " + message)
-		if strings.TrimSpace(string(text)) == "STOP" {
-			fmt.Println("Quiting TCP client")
-			return
+		  conn.Write([]byte("Winter is Coming" + "\n"))
+		  conn.Write([]byte(""+ "\n"))
+		  conn.Write([]byte("Rules:"+ "\n"))
+		  conn.Write([]byte("1: 10x30 board"+ "\n"))
+		  conn.Write([]byte("2: the max number of arrows on the board at one time is 1"+ "\n"))
+		  conn.Write([]byte("3: type shoot to shoot arrow"+ "\n"))
+		  conn.Write([]byte("4: type number to move John Snow"+ "\n"))
+		  conn.Write([]byte("5: Night King will move once every 5 seconds"+ "\n"))
+		  conn.Write([]byte("6: Arrows move 1 square every second in a straight line"+ "\n"))
+		  conn.Write([]byte(" Please enter integer X coordenate between 0 and 9 that John  will shoot arrow from the wall."+ "\n"))
 		}
-	}
-
-
-}
 
 
 func startServer(PORT string) {
@@ -98,23 +84,17 @@ func startServer(PORT string) {
 			os.Exit(100)
 		}
 
+		init_board(c)
 
-		NightKing := nightKing{rand.Intn(9), 30}
-		JohnSnow := johnSnow{rand.Intn(9), 0}
-
-
-		for {
+		for{
 			netData, err := bufio.NewReader(c).ReadString('\n')
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(100)
 			}
-
 			fmt.Print("-> ", string(netData))
-			c.Write([]byte(netData + "fdasf"))
-			c.Write([]byte(NightKing.String() + " " + JohnSnow.String()))
-			fmt.Println(NightKing.String())
-			moveNightKing(NightKing, JohnSnow)
+
+
 			if strings.TrimSpace(string(netData)) == "STOP" {
 				fmt.Println("Exiting TCP server!")
 				return
@@ -122,16 +102,12 @@ func startServer(PORT string) {
 		}
 }
 
-
-
-
-
-type nightKing struct{
+type NightKing struct{
 	x int
 	y int
 }
 
-func (n nightKing) String() string{
+func (n NightKing) String() string{
 	return fmt.Sprintf("Night King : (%d, %d) " , n.x, n.y )
 }
 
@@ -144,30 +120,11 @@ func (a arrow) String() string{
 	return fmt.Sprintf("Arrow : (%d, %d) " , a.x, a.y )
 }
 
-type johnSnow struct{
+type JohnSnow struct{
 	x int
 	y int
 }
 
-func (j johnSnow) String() string{
+func (j JohnSnow) String() string{
 	return fmt.Sprintf("John Snow: (%d, %d) " , j.x, j.y )
-}
-
-
-
-func moveNightKing(NightKing nightKing, JohnSnow johnSnow){
-	NightKing.y = NightKing.y - 1
-	direction := rand.Intn(2)
-	switch direction{
-		case 0:
-			NightKing.x = NightKing.x -1
-		case 1:
-			NightKing.x = NightKing.x
-		case 2:
-			NightKing.x = NightKing.x + 1
-	}
-}
-
-func shootArrow(){
-
 }
