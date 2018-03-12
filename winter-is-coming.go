@@ -8,6 +8,7 @@ import (
 	"strings"
 	"math/rand"
 	"time"
+	"winter-is-comming/GameEngineAPI"
 )
 
 func GetOutboundIP() net.IP {
@@ -31,42 +32,47 @@ func main() {
 		  PORT := "1945"
 			fmt.Println("Your IP and port are " + GetOutboundIP().String() + ":" + PORT + " Please give this to your friend so they can connect.")
 
+			conn := startServer(PORT)
+
 			rand.Seed(time.Now().UnixNano())
 
+			GameEngineAPI.init_board()
+			conn.Write("Start Game: Y/N")
+			var startGame string
+			fmt.Scanln(&startGame)
 
-			startServer(PORT)
-			os.Exit(100)
-		}
+			if (strings.ToLower(strings.TrimSpace(startGame)) == "y"){
+				GameEngineAPI.update_board(conn)
 
-		type Board struct{
-			gameOver bool
-		  arrowOnBoard bool
-			maxX int
-			maxY int
-			minX int
-			minY int
-			JohnSnow
-			NightKing
-		  arrow
-		}
+				for !board.gameOver{
+					var Xcoord string
+					fmt.Scanln(&Xcoord)
 
-		func init_board(conn net.Conn){
-
-			board = Board{false, false, 9, 29, 0, 0, JohnSnow{x: 5,y: 0 }, NightKing{ x: rand.Intn(10) ,y: 30 }, arrow{0, 0}}
+					if Xcoord, err := strconv.Atoi(Xcoord); err == nil{
+						GameEngineAPI.moveJohnSnow(Xcoord)
+						for (Xcoord > board.maxX || Xcoord < board.minX){
+							conn.Write()
+							conn.Write("X coordenate that you have entered is not valid please enter an integer between 0 and 9.")
+							fmt.Scanln(&Xcoord)
+							GameEngineAPI.moveJohnSnow(Xcoord)
+						}
+					}
 
 
-		  conn.Write([]byte("Winter is Coming" + "\n"))
-		  conn.Write([]byte(""+ "\n"))
-		  conn.Write([]byte("Rules:"+ "\n"))
-		  conn.Write([]byte("1: 10x30 board"+ "\n"))
-		  conn.Write([]byte("2: the max number of arrows on the board at one time is 1"+ "\n"))
-		  conn.Write([]byte("3: type shoot to shoot arrow"+ "\n"))
-		  conn.Write([]byte("4: type number to move John Snow"+ "\n"))
-		  conn.Write([]byte("5: Night King will move once every 5 seconds"+ "\n"))
-		  conn.Write([]byte("6: Arrows move 1 square every second in a straight line"+ "\n"))
-		  conn.Write([]byte(" Please enter integer X coordenate between 0 and 9 that John  will shoot arrow from the wall."+ "\n"))
-		}
-
+					if (strings.TrimSpace(Xcoord) == "shoot"){
+						if( !board.arrowOnBoard ){
+							GameEngineAPI.board.arrow.y = 1
+							GameEngineAPI.board.arrow.x = board.JohnSnow.x
+							GameEngineAPI.board.arrowOnBoard = true
+							conn.Write(GameEngineAPI.board.arrow)
+						}else{
+							fmt.Println()
+							fmt.Println("Max number of arrows reached!")
+							fmt.Println()
+						}
+					}
+				}
+			}
 
 func startServer(PORT string) {
 		fmt.Println("Init Server")
@@ -78,53 +84,33 @@ func startServer(PORT string) {
 		}
 		defer l.Close()
 
-		c, err := l.Accept()
+		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(100)
 		}
 
-		init_board(c)
+		go server_listen()
 
-		for{
-			netData, err := bufio.NewReader(c).ReadString('\n')
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(100)
-			}
-			fmt.Print("-> ", string(netData))
+		return conn
 
 
-			if strings.TrimSpace(string(netData)) == "STOP" {
-				fmt.Println("Exiting TCP server!")
-				return
-			}
+}
+
+
+func server_listen(){
+	for{
+		netData, err := bufio.NewReader(c).ReadString('\n')
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(100)
 		}
-}
+		fmt.Print("-> ", string(netData))
 
-type NightKing struct{
-	x int
-	y int
-}
 
-func (n NightKing) String() string{
-	return fmt.Sprintf("Night King : (%d, %d) " , n.x, n.y )
-}
-
-type arrow struct{
-	x int
-	y int
-}
-
-func (a arrow) String() string{
-	return fmt.Sprintf("Arrow : (%d, %d) " , a.x, a.y )
-}
-
-type JohnSnow struct{
-	x int
-	y int
-}
-
-func (j JohnSnow) String() string{
-	return fmt.Sprintf("John Snow: (%d, %d) " , j.x, j.y )
+		if strings.TrimSpace(string(netData)) == "STOP" {
+			fmt.Println("Exiting TCP server!")
+			return
+		}
+	}
 }
